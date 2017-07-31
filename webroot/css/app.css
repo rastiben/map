@@ -1,0 +1,235 @@
+html, body{
+    height: 100%;
+    width: 100%;
+}
+
+#map{
+    height: 100%;
+    width: 100%;
+    /*width: 50%;
+    margin: 0 auto;*/
+}
+
+.app{
+    height:100%;
+    margin: 0px !important;
+    padding: 0px !important;
+}
+
+
+.form{
+    position: absolute !important;
+    top: 0;
+    left: -370px;
+    z-index: 9999;
+    height: 100%;
+    width: 350px !important;
+    background: white;
+    color: darkgray;
+    padding-top: 15px;
+    transition: all 0.2s linear;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+.form.active{
+    left: 0px !important;
+    display: block !important;
+}
+
+.submit{
+    margin-right:15px;
+}
+
+#filters{
+    height: 100%;
+}
+
+.filtres{
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+.filtres.col-md-7{
+    padding-left: 15px !important;
+    padding-right: 2px !important;
+}
+
+.filtre{
+    height: 50px;
+    line-height: 50px;
+    text-align: center;
+    padding: 0px !important;
+    cursor: pointer;
+    background: #3498DB;
+    color: white;
+    font-size: 15px;
+}
+
+.filtre.active{
+    background: #1F618D;
+}
+
+.filtre:hover{
+    background: #1F618D;
+}
+
+.filterFormContainer{
+    width: 100% !important;
+    position: absolute !important;
+    min-height: 100px !important;
+    top: -150px;
+    z-index: 1000;
+    transition: all 0.2s linear;
+}
+
+.filterFormContainer.active{
+    top: 5px;
+}
+
+.filterFormContainer > div{
+    display: block;
+    background: white;
+    border: 1px solid lightgray;
+    background: white;
+    box-shadow: 0px 3px 11px -4px;
+    padding: 0px;
+    border-radius: 4px;
+    height: 125px;
+}
+
+.filterFormContainer label{
+    color: darkgray;
+}
+
+#nbFilter{
+    margin: 0 0 5px;
+    font-size: 25px;
+    color: #647378;
+}
+
+.vHr{
+    border-right: 1px solid lightgray;
+    padding: 30px;
+}
+
+/*LABEL ICON*/
+.divIcon{
+    position: relative;
+    width: 16px;
+}
+
+.avancement{
+    position: absolute;
+    text-align: center;
+    top: 4px;
+    font-size: 6px;
+    width: 100%;
+    color: white;
+}
+
+.filterFormContainer .form-group{
+    margin-bottom: 0px !important;
+    height: 100%;
+}
+
+.loading{
+    position: absolute;
+    z-index: 2000;
+    height: 100%;
+    width: 100%;
+    background: white;
+}
+
+.sk-cube-grid {
+    width: 150px;
+    height: 65px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -32.5px;
+    margin-left: -75px;
+}
+/*300*127*//*100 - 42.3*/
+
+.sk-cube-grid .sk-cube {
+  width: 33%;
+  height: 33%;
+  /*background-color: black;*/
+  float: left;
+  -webkit-animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
+          animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
+}
+.sk-cube-grid .sk-cube1 {
+    -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s;
+    background: url('../assets/BCMI.png');
+    background-position: 0px 0px;
+}
+.sk-cube-grid .sk-cube2 {
+    -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s;
+    background: url('../assets/BCMI.png');
+    background-position: 100px 0px;
+}
+.sk-cube-grid .sk-cube3 {
+    -webkit-animation-delay: 0.4s;
+          animation-delay: 0.4s;
+    background: url('../assets/BCMI.png');
+    background-position: 200px 0px;
+}
+.sk-cube-grid .sk-cube4 {
+    -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s;
+    background: url('../assets/BCMI.png');
+    background-position: 0px -21px;
+}
+.sk-cube-grid .sk-cube5 {
+    -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s;
+    background: url('../assets/BCMI.png');
+    background-position: 100px -21px;
+}
+.sk-cube-grid .sk-cube6 {
+    -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s;
+    background: url('../assets/BCMI.png');
+    background-position: 200px -21px;
+}
+.sk-cube-grid .sk-cube7 {
+    -webkit-animation-delay: 0s;
+          animation-delay: 0s;
+    background: url('../assets/BCMI.png');
+    background-position: 0px -42px;
+}
+.sk-cube-grid .sk-cube8 {
+    -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s;
+    background: url('../assets/BCMI.png');
+    background-position: 100px -42px;
+}
+.sk-cube-grid .sk-cube9 {
+    -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s;
+    background: url('../assets/BCMI.png');
+    background-position: 200px -42px;
+}
+
+@-webkit-keyframes sk-cubeGridScaleDelay {
+  0%, 70%, 100% {
+    -webkit-transform: scale3D(1, 1, 1);
+            transform: scale3D(1, 1, 1);
+  } 35% {
+    -webkit-transform: scale3D(0, 0, 1);
+            transform: scale3D(0, 0, 1);
+  }
+}
+
+@keyframes sk-cubeGridScaleDelay {
+  0%, 70%, 100% {
+    -webkit-transform: scale3D(1, 1, 1);
+            transform: scale3D(1, 1, 1);
+  } 35% {
+    -webkit-transform: scale3D(0, 0, 1);
+            transform: scale3D(0, 0, 1);
+  }
+}
