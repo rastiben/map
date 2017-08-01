@@ -1,3 +1,5 @@
+moment.locale('fr');
+
 var app = angular.module("mapAngular",["ngResource"])
 
 .factory("mapFactory",['$resource','$filter',function($resource,$filter){
@@ -8,24 +10,27 @@ var app = angular.module("mapAngular",["ngResource"])
     var construction = [];
     var layerPortefeuille = [];
     var layerConstruction = [];
-    var displayed = true;
+    var displayed = 1;
 
     return {
         resource : $resource("Markers", {id:'@_id'}),
+        getAllMarkers : function(){
+            return this.construction.concat(this.portefeuille);
+        },
         getMarkers : function(){
-            return this.displayed ? this.construction : this.portefeuille;
+            return this.displayed == 1 ? this.construction : this.portefeuille;
         },
         setMarkers : function(markers){
-            this.portefeuille = $filter('filter')(markers, {dispo: !this.displayed});
+            this.portefeuille = $filter('filter')(markers, {dispo: 0});
             this.filteredPortefeuille = this.portefeuille;
-            this.construction = $filter('filter')(markers, {dispo: this.displayed});
+            this.construction = $filter('filter')(markers, {dispo: 1});
             this.filteredConstruction = this.construction;
         },
         getFilteredMarkers : function(){
-            return this.displayed ? this.filteredConstruction : this.filteredPortefeuille;
+            return this.displayed == 1 ? this.filteredConstruction : this.filteredPortefeuille;
         },
         setFilteredMarkers : function(filteredMarkers){
-            if(displayed)
+            if(displayed == 1)
                 this.filteredConstruction = filteredMarkers;
             else
                 this.filteredPortefeuille = filteredMarkers;
@@ -43,16 +48,25 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.showInfoForm = false;
     $scope.showFilterForm = false;
     $scope.marker = undefined;
+    $scope.markerOriginal = undefined;
     $scope.nbFilterResults = 0;
     $scope.loading = true;
 
-    $scope.switchInfoForm = function(){
+    $scope.switchInfoForm = function(save=false){
         $scope.showInfoForm = !$scope.showInfoForm;
+        $scope.reinit();
 
-        if($scope.marker != undefined && $scope.marker.id == undefined)
+        if(save == false && $scope.marker != undefined && $scope.marker.id == undefined)
             $scope.removeLayer();
 
-        $scope.marker = undefined;
+        //INIT DISPO IF CANCEL
+        if(save == false && $scope.markerOriginal != undefined && $scope.markerOriginal.dispo != $scope.marker.dispo){
+            $scope.markerOriginal.dispo = $scope.markerOriginal.dispo - 1;
+            $rootScope.$broadcast('STATE_CHANGED', $scope.markerOriginal.dispo);
+        }
+
+        //$scope.marker = undefined;
+        //$scope.markerOriginal = undefined;
     }
 
     $scope.switchFilterForm = function(){
@@ -64,17 +78,36 @@ var app = angular.module("mapAngular",["ngResource"])
 
     $scope.changeMarker = function(marker,infos){
         $scope.markerItem = marker;
-        $scope.marker = infos;
+        $scope.marker = JSON.parse(JSON.stringify(infos));
+        $scope.marker.signature = moment($scope.marker.signature).format("MMMM YYYY");
+        $scope.markerOriginal = infos;
+    }
+
+    $scope.reinit = function(){
+        angular.forEach($scope.marker,function(value,key){
+            $scope.markerOriginal[key] = value;
+        });
     }
 
     $scope.addMarker = function(){
         var newMarker = new mapFactory.resource();
+
+        if(moment($scope.marker.signature,"MMMM YYYY",true).isValid())
+            $scope.marker.signature = moment($scope.marker.signature,"MMMM YYYY").format("YYYY-MM-DD");
+
         angular.forEach($scope.marker,function(value,key){
             newMarker[key] = value;
+            $scope.markerOriginal[key] = value;
         });
         newMarker.$save();
 
-        $scope.switchInfoForm();
+        $scope.switchInfoForm(true);
+    }
+
+    $scope.changeState = function(state){
+        $scope.marker.dispo = state;
+        $scope.markerOriginal.dispo = state;
+        $rootScope.$broadcast('STATE_CHANGED', state);
     }
 
     $scope.onConstructeurChange = function(){
@@ -120,7 +153,7 @@ var app = angular.module("mapAngular",["ngResource"])
     }
 
     $scope.validFilters = function(){
-        var temp = mapFactory.displayed ? mapFactory.layerConstruction['_layers'] : mapFactory.layerPortefeuille['_layers'];
+        var temp = mapFactory.displayed == 1 ? mapFactory.layerConstruction['_layers'] : mapFactory.layerPortefeuille['_layers'];
 
         //lat lng
         angular.forEach(temp,function(value,key){
@@ -176,9 +209,68 @@ var app = angular.module("mapAngular",["ngResource"])
             $scope.layerPortefeuille = undefined;
             $scope.layerConstruction = undefined;
 
-            mapFactory.setDisplayed(true);
+            mapFactory.setDisplayed(0);
 
             mapFactory.resource.query(function(markers){
+
+                $scope.filtre(markers);
+
+            });
+
+            $scope.addMarker = function(lat,lng,icon){
+                return L.marker([lat, lng], {icon: icon}).on('click', $scope.onClick);
+            }
+
+            $scope.onClick = function(e) {
+                var temp = mapFactory.displayed == 1 ? mapFactory.construction : mapFactory.portefeuille;
+                var tempL = mapFactory.displayed == 1 ? mapFactory.layerConstruction : mapFactory.layerPortefeuille;
+
+                var arr = $.grep(temp, function(value,key) {
+                  return value.lat == e.latlng.lat && value.lng == e.latlng.lng;
+                });
+                var index = temp.indexOf(arr[0]);
+
+                if(!$scope.showInfoForm)
+                    $timeout($scope.switchInfoForm({save:true}));
+
+                var markerToReturn = tempL._layers[Object.keys(tempL._layers)[index]];
+                $timeout($scope.changeMarker({marker:markerToReturn,infos:arr[0]}));
+            }
+
+            $scope.showCoordinates = function(e) {
+                if(!$scope.showInfoForm)
+                    $timeout($scope.switchInfoForm());
+
+                var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo($scope.map)
+                .bindPopup('Remplissez le formulaire')
+                .openPopup();
+
+                $timeout($scope.changeMarker({marker:marker,infos:{
+                    lat: e.latlng.lat,
+                    lng: e.latlng.lng
+                }}));
+            }
+
+            /*$scope.filtre = function(){
+                if(mapFactory.displayed != undefined){
+                    if(mapFactory.displayed == 1){
+                        $scope.map.removeLayer(mapFactory.layerPortefeuille);
+                        mapFactory.layerConstruction.addTo($scope.map);
+                    } else {
+                        $scope.map.removeLayer(mapFactory.layerConstruction);
+                        mapFactory.layerPortefeuille.addTo($scope.map);
+                    }
+                }
+            };*/
+
+            $scope.showFilterForm = function(){
+               $timeout($scope.switchFilterForm());
+            }
+
+            $scope.filtre = function(markers){
+
+                if(mapFactory.layerPortefeuille != undefined) $scope.map.removeLayer(mapFactory.layerPortefeuille);
+                if(mapFactory.layerConstruction != undefined) $scope.map.removeLayer(mapFactory.layerConstruction);
 
                 var tempPortefeuille = [];
                 var tempConstruction = [];
@@ -208,72 +300,41 @@ var app = angular.module("mapAngular",["ngResource"])
 
                     marker.icon = iconTemp;
 
-                    if(marker.dispo){
-                        tempConstruction.push($scope.addMarker(marker.lat,marker.lng,iconTemp));
-                    } else {
-                        tempPortefeuille.push($scope.addMarker(marker.lat,marker.lng,iconTemp));
+                    switch(marker.dispo){
+                        case 0:
+                            tempPortefeuille.push($scope.addMarker(marker.lat,marker.lng,iconTemp));
+                            break;
+                        case 1:
+                            tempConstruction.push($scope.addMarker(marker.lat,marker.lng,iconTemp));
+                            break;
                     }
                     //$scope.markers.push(marker);
                 });
 
-                $scope.layerConstruction = new L.FeatureGroup(tempConstruction).addTo($scope.map);
+                $scope.layerConstruction = new L.FeatureGroup(tempConstruction);
                 $scope.layerPortefeuille = new L.FeatureGroup(tempPortefeuille);
+
+                 switch(mapFactory.displayed){
+                    case 0:
+                        $scope.layerPortefeuille.addTo($scope.map);
+                        break;
+                    case 1:
+                        $scope.layerConstruction.addTo($scope.map);
+                        break;
+                }
 
                 mapFactory.layerConstruction = $scope.layerConstruction;
                 mapFactory.layerPortefeuille = $scope.layerPortefeuille;
+            }
 
+            $rootScope.$on('STATE_CHANGED', function(event, state) {
+
+                mapFactory.setDisplayed(state);
+                $scope.toggle.state(state);
+                $scope.filtre(mapFactory.getAllMarkers());
+
+                //$scope.filtre();
             });
-
-            $scope.addMarker = function(lat,lng,icon){
-                return L.marker([lat, lng], {icon: icon}).on('click', $scope.onClick);
-            }
-
-            $scope.onClick = function(e) {
-                var temp = mapFactory.displayed ? mapFactory.construction : mapFactory.portefeuille;
-                var tempL = mapFactory.displayed ? mapFactory.layerConstruction : mapFactory.layerPortefeuille;
-
-                var arr = $.grep(temp, function(value,key) {
-                  return value.lat == e.latlng.lat && value.lng == e.latlng.lng;
-                });
-                var index = temp.indexOf(arr[0]);
-
-                if(!$scope.showInfoForm)
-                    $timeout($scope.switchInfoForm());
-
-                var markerToReturn = tempL._layers[Object.keys(tempL._layers)[index]];
-                $timeout($scope.changeMarker({marker:markerToReturn,infos:arr[0]}));
-            }
-
-            $scope.showCoordinates = function(e) {
-                if(!$scope.showInfoForm)
-                    $timeout($scope.switchInfoForm());
-
-                var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo($scope.map)
-                .bindPopup('Remplissez le formulaire')
-                .openPopup();
-
-                $timeout($scope.changeMarker({marker:marker,infos:{
-                    lat: e.latlng.lat,
-                    lng: e.latlng.lng
-                }}));
-            }
-
-            $scope.filtre = function(){
-                if(mapFactory.displayed != undefined){
-                    if(mapFactory.displayed){
-                        $scope.map.removeLayer(mapFactory.layerPortefeuille);
-                        mapFactory.layerConstruction.addTo($scope.map);
-                    } else {
-                        $scope.map.removeLayer(mapFactory.layerConstruction);
-                        mapFactory.layerPortefeuille.addTo($scope.map);
-                    }
-                }
-            };
-
-            $scope.showFilterForm = function(){
-               $timeout($scope.switchFilterForm());
-            }
-
         },
         link(scope,element,attrs){
 
@@ -290,22 +351,22 @@ var app = angular.module("mapAngular",["ngResource"])
             /*INITIALISATION DES BOUTONS*/
             scope.toggle = L.easyButton({
               states: [{
-                stateName: 'construction',
-                title: 'En cours de construction',
-                icon: 'glyphicon glyphicon-wrench',
-                onClick: function(control) {
-                    mapFactory.setDisplayed(false);
-                    scope.filtre();
-                    control.state('portefeuille');
-                }
-              }, {
-                stateName: 'portefeuille',
+                stateName: '0',
                 title: 'Portefeuille client',
                 icon: 'glyphicon glyphicon-home',
                 onClick: function(control) {
-                    mapFactory.setDisplayed(true);
-                    scope.filtre();
-                    control.state('construction');
+                    mapFactory.setDisplayed(1);
+                    scope.filtre(mapFactory.getAllMarkers());
+                    control.state('1');
+                }
+              },{
+                stateName: '1',
+                title: 'En cours de construction',
+                icon: 'glyphicon glyphicon-wrench',
+                onClick: function(control) {
+                    mapFactory.setDisplayed(0);
+                    scope.filtre(mapFactory.getAllMarkers());
+                    control.state('0');
                 }
               }]
             });

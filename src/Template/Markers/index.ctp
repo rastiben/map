@@ -37,8 +37,15 @@
             </div>
 
 
-            <leaflet data-switch-info-form="switchInfoForm()" data-set-map="setMap(map)" data-switch-filter-form="switchFilterForm()" data-change-marker="changeMarker(marker,infos)" data-show-info-form="showInfoForm"></leaflet>
+            <leaflet data-switch-info-form="switchInfoForm(save)" data-set-map="setMap(map)" data-switch-filter-form="switchFilterForm()" data-change-marker="changeMarker(marker,infos)" data-show-info-form="showInfoForm"></leaflet>
             <div ng-class="{'col-md-4 form active': showInfoForm,'col-md-4 form': !showInfoForm}" >
+                <div class="step">
+                    <ul class="progressbar col-md-12">
+                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 0}">Portefeuille client</li>
+                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 1}" ng-click="marker.dispo == 0 && changeState(1)">En cours de construction</li>
+                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 2}" ng-click="marker.dispo == 1 && changeState(2)">Terminé</li>
+                    </ul>
+                </div>
                 <form id="addMarker" method="post" name="infoForm">
                   <div class="form-group">
                     <label for="lat">Lat Lng</label>
@@ -84,7 +91,7 @@
                     <input type="text" ng-model="marker.montantht" name="montantht" id="montantht" class="form-control" required>
                   </div>
                   <button type="submit" id="submit" ng-disabled="infoForm.$invalid" ng-click="addMarker()" class="btn btn-success pull-right">Valider</button>
-                  <button type="reset" ng-click="switchInfoForm()" style="margin-right:15px" class="btn btn-danger pull-right" id="cancel">Annuler</button>
+                  <button ng-click="switchInfoForm()" style="margin-right:15px" class="btn btn-danger pull-right" id="cancel">Annuler</button>
                 </form>
             </div>
             <!--<div class="form-group">
