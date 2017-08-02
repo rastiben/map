@@ -4,10 +4,7 @@ var app = angular.module("mapAngular",["ngResource"])
 
 .factory("mapFactory",['$resource','$filter',function($resource,$filter){
 
-    var filteredPortefeuille = [];
-    var filteredConstruction = [];
-    var portefeuille = [];
-    var construction = [];
+    var markers = [];
     var layerPortefeuille = [];
     var layerConstruction = [];
     var displayed = 1;
@@ -15,29 +12,37 @@ var app = angular.module("mapAngular",["ngResource"])
     return {
         resource : $resource("Markers", {id:'@_id'}),
         getAllMarkers : function(){
-            return this.construction.concat(this.portefeuille);
+            return this.markers;
         },
         getMarkers : function(){
-            return this.displayed == 1 ? this.construction : this.portefeuille;
+            return $filter('filter')(this.markers, {dispo: this.displayed});
+        },
+        addMarker : function(marker,item){
+            this.markers.push(marker);
+            switch(this.displayed){
+                case 0:
+                    return this.layerPortefeuille.addLayer(item);
+                    break;
+                case 1:
+                    return this.layerConstruction.addLayer(item);
+                    break;
+            }
+        },
+        getLayerMarkers : function(){
+            switch(this.displayed){
+                case 0:
+                    return this.layerPortefeuille;
+                    break;
+                case 1:
+                    return this.layerConstruction;
+                    break;
+            }
         },
         setMarkers : function(markers){
-            this.portefeuille = $filter('filter')(markers, {dispo: 0});
-            this.filteredPortefeuille = this.portefeuille;
-            this.construction = $filter('filter')(markers, {dispo: 1});
-            this.filteredConstruction = this.construction;
-        },
-        getFilteredMarkers : function(){
-            return this.displayed == 1 ? this.filteredConstruction : this.filteredPortefeuille;
-        },
-        setFilteredMarkers : function(filteredMarkers){
-            if(displayed == 1)
-                this.filteredConstruction = filteredMarkers;
-            else
-                this.filteredPortefeuille = filteredMarkers;
+            this.markers = markers;
         },
         setDisplayed : function(displayed){
             this.displayed = displayed;
-            //this.filteredMarkers = $filter('filter')(this.markers, {dispo: this.displayed});
         }
     }
 
@@ -53,16 +58,17 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.prixMoyenTTC = 0;
     $scope.prixMoyenHT = 0;
     $scope.loading = true;
+    $scope.dispo = 0;
 
     $scope.switchInfoForm = function(save=false){
         $scope.showInfoForm = !$scope.showInfoForm;
-        $scope.reinit();
 
         if(save == false && $scope.marker != undefined && $scope.marker.id == undefined)
             $scope.removeLayer();
 
         //INIT DISPO IF CANCEL
-        if(save == false && $scope.markerOriginal != undefined && $scope.markerOriginal.dispo != $scope.marker.dispo){
+        if(save == false && $scope.markerOriginal != undefined && $scope.markerOriginal.dispo != $scope.dispo){
+            $scope.reinit();
             $scope.markerOriginal.dispo = $scope.markerOriginal.dispo - 1;
             $rootScope.$broadcast('STATE_CHANGED', $scope.markerOriginal.dispo);
         }
@@ -72,7 +78,7 @@ var app = angular.module("mapAngular",["ngResource"])
     }
 
     $scope.switchFilterForm = function(){
-        $scope.filteredMarkers =  mapFactory.getFilteredMarkers();
+        $scope.filteredMarkers =  mapFactory.getMarkers();
         $scope.nbFilterResults = $scope.filteredMarkers.length;
         $scope.calcPrixMoyen($scope.filteredMarkers);
 
@@ -96,6 +102,7 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.changeMarker = function(marker,infos){
         $scope.markerItem = marker;
         $scope.marker = JSON.parse(JSON.stringify(infos));
+        $scope.dispo = $scope.marker.dispo;
         $scope.marker.signature = moment($scope.marker.signature).format("MMMM YYYY");
         $scope.markerOriginal = infos;
     }
@@ -116,7 +123,17 @@ var app = angular.module("mapAngular",["ngResource"])
             newMarker[key] = value;
             $scope.markerOriginal[key] = value;
         });
-        newMarker.$save();
+
+        var id = $scope.marker.id == undefined ? false : true;
+        var icon = $scope.markerItem.options.icon;
+        if($scope.marker.id == undefined) $scope.removeLayer();
+
+        newMarker.$save(function(data){
+            if(!id){
+                data.icon = icon;
+                $rootScope.$broadcast('ADD_MARKER', data);
+            }
+        });
 
         $scope.switchInfoForm(true);
     }
@@ -173,6 +190,17 @@ var app = angular.module("mapAngular",["ngResource"])
         $scope.calcPrixMoyen($scope.filteredMarkers);
     }
 
+    $scope.exportData = function() {
+        alasql("SELECT signature AS [Date de signature], \
+                       agence AS [Agence], \
+                       commerciale AS [Commerciale], \
+                       marque AS [Marque], \
+                       client AS [Client], \
+                       lieu AS [Lieu], \
+                       montantttc AS [Montant TTC], \
+                       montantht AS [Montant HT] INTO XLSX('markers.xlsx',{headers:true}) FROM ? ",[$scope.filteredMarkers]);
+    }
+
     $scope.validFilters = function(){
         var temp = mapFactory.displayed == 1 ? mapFactory.layerConstruction['_layers'] : mapFactory.layerPortefeuille['_layers'];
 
@@ -187,9 +215,15 @@ var app = angular.module("mapAngular",["ngResource"])
     }
 
     $scope.$watch(function(){
-        return mapFactory.filteredMarkers;
+        return mapFactory.markers;
     }, function(){
         $timeout(function(){$scope.loading = false},2000);
+    });
+
+    $scope.$watch(function(){
+        return mapFactory.displayed;
+    }, function(){
+        $scope.displayed = mapFactory.displayed;
     });
 
 }])
@@ -201,7 +235,10 @@ var app = angular.module("mapAngular",["ngResource"])
             $(element).datepicker({
                 format: "MM yyyy",
                 language: "fr",
-                autoclose: true
+                autoclose: true,
+                startView: 1,
+                minViewMode: 1,
+                maxViewMode: 2
             })
             .on("changeDate", function(e) {
                 scope.$apply(function() {
@@ -243,8 +280,8 @@ var app = angular.module("mapAngular",["ngResource"])
             }
 
             $scope.onClick = function(e) {
-                var temp = mapFactory.displayed == 1 ? mapFactory.construction : mapFactory.portefeuille;
-                var tempL = mapFactory.displayed == 1 ? mapFactory.layerConstruction : mapFactory.layerPortefeuille;
+                var temp = mapFactory.getMarkers();
+                var tempL = mapFactory.getLayerMarkers();
 
                 var arr = $.grep(temp, function(value,key) {
                   return value.lat == e.latlng.lat && value.lng == e.latlng.lng;
@@ -366,6 +403,13 @@ var app = angular.module("mapAngular",["ngResource"])
                 mapFactory.layerConstruction = $scope.layerConstruction;
                 mapFactory.layerPortefeuille = $scope.layerPortefeuille;
             }
+
+
+            $rootScope.$on('ADD_MARKER', function(event, marker) {
+                mapFactory.addMarker(marker,$scope.addMarker(marker.lat,marker.lng,marker.icon));
+                $scope.filtre(mapFactory.getAllMarkers());
+            });
+
 
             $rootScope.$on('STATE_CHANGED', function(event, state) {
 

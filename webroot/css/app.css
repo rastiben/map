@@ -34,6 +34,8 @@ html, body{
 .form.active{
     left: 0px !important;
     display: block !important;
+    overflow: auto;
+    padding-bottom: 30px;
 }
 
 .submit{
@@ -77,13 +79,15 @@ html, body{
     width: 100% !important;
     position: absolute !important;
     min-height: 100px !important;
-    top: -175px;
+    top: -170px;
+    display: none;
     z-index: 1000;
     transition: all 0.2s linear;
 }
 
 .filterFormContainer.active{
     top: 5px;
+    display: block;
 }
 
 .filterFormContainer > div{
@@ -94,7 +98,6 @@ html, body{
     box-shadow: 0px 3px 11px -4px;
     padding: 0px;
     border-radius: 4px;
-    height: 175px;
 }
 
 .filterFormContainer label{
@@ -108,7 +111,7 @@ html, body{
 }
 
 .vHr{
-    border-right: 1px solid lightgray;
+    /*border-right: 1px solid lightgray;*/
     padding: 30px;
 }
 

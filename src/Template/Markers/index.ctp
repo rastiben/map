@@ -90,6 +90,25 @@
                     <label for="montantht">Montant HT</label>
                     <input type="text" ng-model="marker.montantht" name="montantht" id="montantht" class="form-control" required>
                   </div>
+                  <div ng-if="marker.dispo > 0" class="form-group">
+                    <label for="montantht">Conducteur</label>
+                    <select ng-model="marker.conducteur" name="conducteur" id="conducteur" class="form-control" required>
+                            <option>PM</option>
+                            <option>SA</option>
+                    </select>
+                  </div>
+                  <div ng-if="marker.dispo > 0" class="form-group">
+                    <label for="montantht">Avancement</label>
+                    <select ng-model="marker.avancement" name="avancement" id="avancement" class="form-control" required>
+                        <option>OC</option>
+                        <option>F</option>
+                        <option>GO</option>
+                        <option>C</option>
+                        <option>E1</option>
+                        <option>E2</option>
+                        <option>L</option>
+                    </select>
+                  </div>
                   <button type="submit" id="submit" ng-disabled="infoForm.$invalid" ng-click="addMarker()" class="btn btn-success pull-right">Valider</button>
                   <button ng-click="switchInfoForm()" style="margin-right:15px" class="btn btn-danger pull-right" id="cancel">Annuler</button>
                 </form>
@@ -119,7 +138,36 @@
             <div ng-class="{'filterFormContainer col-md-12 active': showFilterForm,'filterFormContainer col-md-12': !showFilterForm}">
                 <div class="col-md-6 col-md-offset-3">
                     <form id="filters" class="col-md-12">
+                       <div class="form-group col-md-3 vHr">
+                            <label for="lat">Date de signature : </label>
+                            <input datepicker ng-model="filters.signature" ng-change="mettreAJour()" name="filterSignature" id="filterSignature" class="form-control"></input>
+                        </div>
                         <div class="form-group col-md-3 vHr">
+                            <label for="lat">Agence commerciale : </label>
+                            <input ng-model="filters.agence" ng-change="mettreAJour()" name="filterAgence" id="filterAgence" class="form-control"></input>
+                        </div>
+                        <div class="form-group col-md-3 vHr">
+                            <label for="lat">Commerciale : </label>
+                            <input ng-model="filters.commerciale" ng-change="mettreAJour()" name="filterCommerciale" id="filterCommerciale" class="form-control"></input>
+                        </div>
+                        <div class="form-group col-md-3 vHr">
+                            <label for="lat">Marque : </label>
+                            <select ng-model="filters.marque" ng-change="mettreAJour()" name="filterMarque" id="filterMarque" class="form-control">
+                                <option></option>
+                                <option>Maison d'aujourd'hui</option>
+                                <option>Demeures & Cottages</option>
+                                <option>Maison sweet</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-3 vHr">
+                            <label for="lat">Client : </label>
+                            <input ng-model="filters.client" ng-change="mettreAJour()" name="filterClient" id="filterClient" class="form-control"></input>
+                        </div>
+                        <div class="form-group col-md-3 vHr">
+                            <label for="lat">Lieu de construction : </label>
+                            <input ng-model="filters.lieu" ng-change="mettreAJour()" name="filterLieu" id="filterLieu" class="form-control"></input>
+                        </div>
+                        <div ng-show="displayed > 0" class="form-group col-md-3 vHr">
                             <label for="lat">Conducteur de travaux : </label>
                             <select ng-model="filters.conducteur" ng-change="mettreAJour()" name="filterConducteur" id="filterConducteur" class="form-control">
                                 <option></option>
@@ -127,7 +175,7 @@
                                 <option>SA</option>
                             </select>
                         </div>
-                        <div class="form-group col-md-3 vHr">
+                        <div ng-show="displayed > 0" class="form-group col-md-3 vHr">
                             <label for="lat">Avancement : </label>
                             <select ng-model="filters.avancement" ng-change="mettreAJour()" name="filterAvancement" id="filterAvancement" class="form-control">
                                 <option></option>
@@ -140,14 +188,15 @@
                                 <option>L</option>
                             </select>
                         </div>
-                        <div class="form-group col-md-3 vHr"></div>
-                        <div class="form-group col-md-3 text-center" style="padding:11px;">
+
+                    </form>
+                    <div class="form-group col-md-12 text-center" style="padding:11px;">
                             <label>Nombres de résultats</label>
                             <p id="nbFilter">{{nbFilterResults}}</p>
-                            <p>Prix moyen TTC : {{prixMoyenTTC | currency:"€"}} Prix moyen HT : {{prixMoyenHT | currency:"€"}}</p>
-                            <button class="btn btn-primary" ng-click="validFilters()">Mise à jour</button>
-                        </div>
-                    </form>
+                            <p>Prix moyen TTC : {{prixMoyenTTC | currency:"€"}}</br>Prix moyen HT : {{prixMoyenHT | currency:"€"}}</p>
+                            <button class="btn btn-success" ng-click="validFilters()">Mise à jour</button>
+                            <button class="btn btn-primary" ng-click="exportData()"><span class="glyphicon glyphicon-print"></span></button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,6 +213,8 @@
         <script src="./js/bootstrap-datepicker.min.js"></script>
         <script src="./locales/bootstrap-datepicker.fr.min.js"></script>
         <script src="./js/moment.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/0.3.7/alasql.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.9.2/xlsx.core.min.js"></script>
         <script src="./js/app.js"></script>
 
         <script>
