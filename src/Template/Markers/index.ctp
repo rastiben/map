@@ -39,7 +39,7 @@
 
             <leaflet data-switch-info-form="switchInfoForm(save)" data-set-map="setMap(map)" data-switch-filter-form="switchFilterForm()" data-change-marker="changeMarker(marker,infos)" data-show-info-form="showInfoForm"></leaflet>
             <div ng-class="{'col-md-4 form active': showInfoForm,'col-md-4 form': !showInfoForm}" >
-                <div class="step">
+                <div class="step" ng-show="marker.id">
                     <ul class="progressbar col-md-12">
                         <li class="col-md-4" ng-class="{'active' : marker.dispo >= 0}">Portefeuille client</li>
                         <li class="col-md-4" ng-class="{'active' : marker.dispo >= 1}" ng-click="marker.dispo == 0 && changeState(1)">En cours de construction</li>
@@ -144,6 +144,7 @@
                         <div class="form-group col-md-3 text-center" style="padding:11px;">
                             <label>Nombres de résultats</label>
                             <p id="nbFilter">{{nbFilterResults}}</p>
+                            <p>Prix moyen TTC : {{prixMoyenTTC | currency:"€"}} Prix moyen HT : {{prixMoyenHT | currency:"€"}}</p>
                             <button class="btn btn-primary" ng-click="validFilters()">Mise à jour</button>
                         </div>
                     </form>

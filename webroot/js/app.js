@@ -50,6 +50,8 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.marker = undefined;
     $scope.markerOriginal = undefined;
     $scope.nbFilterResults = 0;
+    $scope.prixMoyenTTC = 0;
+    $scope.prixMoyenHT = 0;
     $scope.loading = true;
 
     $scope.switchInfoForm = function(save=false){
@@ -72,9 +74,24 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.switchFilterForm = function(){
         $scope.filteredMarkers =  mapFactory.getFilteredMarkers();
         $scope.nbFilterResults = $scope.filteredMarkers.length;
+        $scope.calcPrixMoyen($scope.filteredMarkers);
 
         $scope.showFilterForm = !$scope.showFilterForm;
     }
+
+    $scope.calcPrixMoyen = function(filteredMarkers){
+        $scope.prixMoyenTTC = 0;
+        $scope.prixMoyenHT = 0;
+        //calcule du prix moyen.
+        angular.forEach(filteredMarkers,function(value,key){
+            $scope.prixMoyenTTC += value.montantttc;
+            $scope.prixMoyenHT += value.montantht;
+        });
+
+        $scope.prixMoyenTTC /= $scope.nbFilterResults;
+        $scope.prixMoyenHT /= $scope.nbFilterResults;
+    }
+
 
     $scope.changeMarker = function(marker,infos){
         $scope.markerItem = marker;
@@ -112,7 +129,7 @@ var app = angular.module("mapAngular",["ngResource"])
 
     $scope.onConstructeurChange = function(){
         var html = '<div class="divIcon"><img class="icon" style="width:16px;height:21px;" src="./assets/{0}.png"/>'+
-                        '<div class="avancement">'+ $scope.marker.avancement +'</div></div>';
+                        '<div class="avancement">'+ ($scope.marker.avancement != undefined ? $scope.marker.avancement : '') +'</div></div>';
 
         switch($scope.marker.marque){
             case "Maison d'aujourd'hui":
@@ -144,12 +161,16 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.mettreAJour = function(){
         $scope.filteredMarkers = mapFactory.getMarkers();
 
+        //Calcule du nombre de résultats
         angular.forEach($scope.filters,function(value,key){
             if(value != undefined && value != "")
                 $scope.filteredMarkers = $filter('filter')($scope.filteredMarkers, {[key]: value});
         });
 
         $scope.nbFilterResults = $scope.filteredMarkers.length;
+
+        //calcule du prix moyen.
+        $scope.calcPrixMoyen($scope.filteredMarkers);
     }
 
     $scope.validFilters = function(){
@@ -241,14 +262,33 @@ var app = angular.module("mapAngular",["ngResource"])
                 if(!$scope.showInfoForm)
                     $timeout($scope.switchInfoForm());
 
-                var marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo($scope.map)
+                var iconTemp = new L.DivIcon({
+                        className: 'blueIcon',
+                        iconSize:['16','21'],
+                        html: '<div class="divIcon"><img class="icon" style="width:16px;height:21px;" src="./assets/blue.png"/>'+
+                        '<div class="avancement"></div></div>'
+                });
+
+                var marker = L.marker([e.latlng.lat, e.latlng.lng], {icon: iconTemp}).addTo($scope.map)
                 .bindPopup('Remplissez le formulaire')
                 .openPopup();
 
-                $timeout($scope.changeMarker({marker:marker,infos:{
-                    lat: e.latlng.lat,
-                    lng: e.latlng.lng
-                }}));
+                $http.get("https://maps.googleapis.com/maps/api/geocode/json?latlng="+e.latlng.lat+","+e.latlng.lng+"&key=AIzaSyBgP2-eK2a30L5nxFY4B93ZIG3MrWnFXaE").then(function(data){
+                    var city = undefined;
+                    angular.forEach(data.data.results[0].address_components,function(components,key){
+                        if(components.types[0] === "locality"){
+                            city = components.long_name;
+                        }
+                    });
+
+                    $timeout($scope.changeMarker({marker:marker,infos:{
+                        lat: e.latlng.lat,
+                        lng: e.latlng.lng,
+                        dispo: 0,
+                        lieu: city,
+                        marque:"Maison d'aujourd'hui"
+                    }}));
+                });
             }
 
             /*$scope.filtre = function(){
@@ -397,10 +437,16 @@ var app = angular.module("mapAngular",["ngResource"])
                 ,defaultMarkGeocode: false
             }).on('markgeocode', function(e) {
                 var bbox = e.geocode.bbox;
+
+                mapFactory.setDisplayed(0);
+                scope.toggle.state(0);
+                scope.filtre(mapFactory.getAllMarkers());
+
                 scope.map.fitBounds([
                     [bbox.getSouthEast(),bbox.getNorthEast()],
                     [bbox.getNorthWest(),bbox.getSouthWest()]
                 ]);
+
             }).addTo(scope.map);
 
             $timeout(scope.setMap({map:scope.map}));
