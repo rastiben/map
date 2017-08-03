@@ -42,8 +42,8 @@
                 <div class="step" ng-show="marker.id">
                     <ul class="progressbar col-md-12">
                         <li class="col-md-4" ng-class="{'active' : marker.dispo >= 0}">Portefeuille client</li>
-                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 1}" ng-click="marker.dispo == 0 && changeState(1)">En cours de construction</li>
-                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 2}" ng-click="marker.dispo == 1 && changeState(2)">Terminé</li>
+                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 1}" ng-click="marker.dispo == 0 && changeState(1)">En cours de construction <span ng-show="marker.ouverture">(Ouvert le {{marker.ouverture | moment: 'format': 'DD MMM YYYY'}})</span></li>
+                        <li class="col-md-4" ng-class="{'active' : marker.dispo >= 2}" ng-click="marker.dispo == 1 && changeState(2)">Terminé <span ng-show="marker.livraison">(Livrée le {{marker.livraison | moment: 'format': 'DD MMM YYYY'}})</span></li>
                     </ul>
                 </div>
                 <form id="addMarker" method="post" name="infoForm">
@@ -71,6 +71,7 @@
                     <select ng-model="marker.marque" ng-change="onConstructeurChange()" name="marque" id="marque" class="form-control" required>
                         <option>Maison d'aujourd'hui</option>
                         <option>Demeures & Cottages</option>
+                        <option>Demeures & Maisons Bois</option>
                         <option>Maison sweet</option>
                     </select>
                   </div>
@@ -135,6 +136,7 @@
                                 <option></option>
                                 <option>Maison d'aujourd'hui</option>
                                 <option>Demeures & Cottages</option>
+                                <option>Demeures & Maisons Bois</option>
                                 <option>Maison sweet</option>
                             </select>
                         </div>
