@@ -37,7 +37,7 @@
             </div>
 
 
-            <leaflet data-switch-info-form="switchInfoForm(save)" data-set-map="setMap(map)" data-switch-filter-form="switchFilterForm()" data-change-marker="changeMarker(marker,infos)" data-show-info-form="showInfoForm"></leaflet>
+            <leaflet data-switch-info-form="switchInfoForm(save)" data-set-map="setMap(map)" data-switch-filter-form="switchFilterForm()" data-change-marker="changeMarker(marker,infos,onlyItem)" data-show-info-form="showInfoForm"></leaflet>
             <div ng-class="{'col-md-4 form active': showInfoForm,'col-md-4 form': !showInfoForm}" >
                 <div class="step" ng-show="marker.id">
                     <ul class="progressbar col-md-12">
@@ -99,7 +99,7 @@
                   </div>
                   <div ng-if="marker.dispo > 0" class="form-group">
                     <label for="montantht">Avancement</label>
-                    <select ng-model="marker.avancement" name="avancement" id="avancement" class="form-control" required>
+                    <select ng-model="marker.avancement" ng-change="onAvancementChange()" name="avancement" id="avancement" class="form-control" required>
                         <option>OC</option>
                         <option>F</option>
                         <option>GO</option>
@@ -113,28 +113,7 @@
                   <button ng-click="switchInfoForm()" style="margin-right:15px" class="btn btn-danger pull-right" id="cancel">Annuler</button>
                 </form>
             </div>
-            <!--<div class="form-group">
-                    <label for="client">Avancement</label>
-                    <select ng-model="marker.avancement" ng-change="onAvancementChange()" name="avancement" id="avancement" class="form-control">
-                        <option>OC</option>
-                        <option>F</option>
-                        <option>GO</option>
-                        <option>C</option>
-                        <option>E1</option>
-                        <option>E2</option>
-                        <option>L</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="client">Conducteur</label>
-                    <input type="text" ng-model="marker.conducteur" name="conducteur" id="conducteur" class="form-control">
-                  </div>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input id='dispo' type='checkbox' ng-model="marker.dispo" name='dispo' class="form-check-input">
-                      En cours de construction
-                    </label>
-                  </div>-->
+
             <div ng-class="{'filterFormContainer col-md-12 active': showFilterForm,'filterFormContainer col-md-12': !showFilterForm}">
                 <div class="col-md-6 col-md-offset-3">
                     <form id="filters" class="col-md-12">

@@ -7,6 +7,7 @@ var app = angular.module("mapAngular",["ngResource"])
     var markers = [];
     var layerPortefeuille = [];
     var layerConstruction = [];
+    var layerTermine = [];
     var displayed = 1;
 
     return {
@@ -26,6 +27,9 @@ var app = angular.module("mapAngular",["ngResource"])
                 case 1:
                     return this.layerConstruction.addLayer(item);
                     break;
+                case 2:
+                    return this.layerTermine.addLayer(item);
+                    break;
             }
         },
         getLayerMarkers : function(){
@@ -35,6 +39,9 @@ var app = angular.module("mapAngular",["ngResource"])
                     break;
                 case 1:
                     return this.layerConstruction;
+                    break;
+                case 2:
+                    return this.layerTermine;
                     break;
             }
         },
@@ -70,7 +77,12 @@ var app = angular.module("mapAngular",["ngResource"])
         if(save == false && $scope.markerOriginal != undefined && $scope.markerOriginal.dispo != $scope.dispo){
             $scope.reinit();
             $scope.markerOriginal.dispo = $scope.markerOriginal.dispo - 1;
-            $rootScope.$broadcast('STATE_CHANGED', $scope.markerOriginal.dispo);
+            $rootScope.$broadcast('STATE_CHANGED', {state:$scope.markerOriginal.dispo,
+                                                    latlng:{
+                                                        lat:$scope.markerOriginal.lat,
+                                                        lng:$scope.markerOriginal.lng
+                                                    }
+                                                    });
         }
 
         //$scope.marker = undefined;
@@ -99,12 +111,14 @@ var app = angular.module("mapAngular",["ngResource"])
     }
 
 
-    $scope.changeMarker = function(marker,infos){
+    $scope.changeMarker = function(marker,infos,onlyItem=false){
         $scope.markerItem = marker;
-        $scope.marker = JSON.parse(JSON.stringify(infos));
-        $scope.dispo = $scope.marker.dispo;
-        $scope.marker.signature = moment($scope.marker.signature).format("MMMM YYYY");
-        $scope.markerOriginal = infos;
+        if(onlyItem == false){
+            $scope.marker = JSON.parse(JSON.stringify(infos));
+            $scope.dispo = $scope.marker.dispo;
+            $scope.marker.signature = moment($scope.marker.signature).format("MMMM YYYY");
+            $scope.markerOriginal = infos;
+        }
     }
 
     $scope.reinit = function(){
@@ -141,7 +155,12 @@ var app = angular.module("mapAngular",["ngResource"])
     $scope.changeState = function(state){
         $scope.marker.dispo = state;
         $scope.markerOriginal.dispo = state;
-        $rootScope.$broadcast('STATE_CHANGED', state);
+        $rootScope.$broadcast('STATE_CHANGED', {state:state,
+                                                    latlng:{
+                                                        lat:$scope.markerOriginal.lat,
+                                                        lng:$scope.markerOriginal.lng
+                                                    }
+                                                });
     }
 
     $scope.onConstructeurChange = function(){
@@ -202,7 +221,20 @@ var app = angular.module("mapAngular",["ngResource"])
     }
 
     $scope.validFilters = function(){
-        var temp = mapFactory.displayed == 1 ? mapFactory.layerConstruction['_layers'] : mapFactory.layerPortefeuille['_layers'];
+        $rootScope.$broadcast('APPLY_FILTER', $scope.filteredMarkers);
+        /*var temp = undefined;
+
+        switch(mapFactory.displayed){
+            case 0:
+                temp = mapFactory.layerPortefeuille['_layers'];
+                break;
+            case 1:
+                temp = mapFactory.layerConstruction['_layers'];
+                break;
+            case 2:
+                temp = mapFactory.layerTermine['_layers'];
+                break;
+        }
 
         //lat lng
         angular.forEach(temp,function(value,key){
@@ -210,7 +242,7 @@ var app = angular.module("mapAngular",["ngResource"])
                 $(value._icon).find('.divIcon').css('display','none');
             else
                 $(value._icon).find('.divIcon').css('display','block');
-        });
+        });*/
         //mapFactory.setFilteredMarkers($scope.filteredMarkers);
     }
 
@@ -249,7 +281,7 @@ var app = angular.module("mapAngular",["ngResource"])
    };
 })
 
-.directive("leaflet",["$http","mapFactory","$timeout","$rootScope",function($http,mapFactory,$timeout,$rootScope){
+.directive("leaflet",["$http","mapFactory","$timeout","$rootScope","$filter",function($http,mapFactory,$timeout,$rootScope,$filter){
    return {
         restrict: 'EA',
         template: '<div id="map">',
@@ -266,6 +298,7 @@ var app = angular.module("mapAngular",["ngResource"])
             //$scope.markers = [];
             $scope.layerPortefeuille = undefined;
             $scope.layerConstruction = undefined;
+            $scope.layerTermine = undefined;
 
             mapFactory.setDisplayed(0);
 
@@ -275,11 +308,18 @@ var app = angular.module("mapAngular",["ngResource"])
 
             });
 
-            $scope.addMarker = function(lat,lng,icon){
-                return L.marker([lat, lng], {icon: icon}).on('click', $scope.onClick);
+            $scope.addMarker = function(lat,lng,icon,click=true){
+                switch(click){
+                    case true:
+                        return L.marker([lat, lng], {icon: icon}).on('click', $scope.onClick);
+                        break;
+                    case false:
+                        return L.marker([lat, lng], {icon: icon});
+                        break;
+                }
             }
 
-            $scope.onClick = function(e) {
+            $scope.onClick = function(e,onlyItem=false) {
                 var temp = mapFactory.getMarkers();
                 var tempL = mapFactory.getLayerMarkers();
 
@@ -292,7 +332,7 @@ var app = angular.module("mapAngular",["ngResource"])
                     $timeout($scope.switchInfoForm({save:true}));
 
                 var markerToReturn = tempL._layers[Object.keys(tempL._layers)[index]];
-                $timeout($scope.changeMarker({marker:markerToReturn,infos:arr[0]}));
+                $timeout($scope.changeMarker({marker:markerToReturn,infos:arr[0],onlyItem:onlyItem}));
             }
 
             $scope.showCoordinates = function(e) {
@@ -310,22 +350,13 @@ var app = angular.module("mapAngular",["ngResource"])
                 .bindPopup('Remplissez le formulaire')
                 .openPopup();
 
-                $http.get("https://maps.googleapis.com/maps/api/geocode/json?latlng="+e.latlng.lat+","+e.latlng.lng+"&key=AIzaSyBgP2-eK2a30L5nxFY4B93ZIG3MrWnFXaE").then(function(data){
-                    var city = undefined;
-                    angular.forEach(data.data.results[0].address_components,function(components,key){
-                        if(components.types[0] === "locality"){
-                            city = components.long_name;
-                        }
-                    });
-
-                    $timeout($scope.changeMarker({marker:marker,infos:{
-                        lat: e.latlng.lat,
-                        lng: e.latlng.lng,
-                        dispo: 0,
-                        lieu: city,
-                        marque:"Maison d'aujourd'hui"
-                    }}));
-                });
+                $timeout($scope.changeMarker({marker:marker,infos:{
+                    lat: e.latlng.lat,
+                    lng: e.latlng.lng,
+                    dispo: 0,
+                    lieu: $scope.city,
+                    marque:"Maison d'aujourd'hui"
+                },onlyItem:false}));
             }
 
             /*$scope.filtre = function(){
@@ -344,15 +375,18 @@ var app = angular.module("mapAngular",["ngResource"])
                $timeout($scope.switchFilterForm());
             }
 
-            $scope.filtre = function(markers){
+            $scope.filtre = function(markers,donotsetmarkers=false){
 
                 if(mapFactory.layerPortefeuille != undefined) $scope.map.removeLayer(mapFactory.layerPortefeuille);
                 if(mapFactory.layerConstruction != undefined) $scope.map.removeLayer(mapFactory.layerConstruction);
+                if(mapFactory.layerTermine != undefined) $scope.map.removeLayer(mapFactory.layerTermine);
 
                 var tempPortefeuille = [];
                 var tempConstruction = [];
+                var tempTermine = [];
 
-                mapFactory.setMarkers(markers);
+                if(!donotsetmarkers)
+                    mapFactory.setMarkers(markers);
 
                 angular.forEach(markers,function(marker,key){
 
@@ -362,6 +396,8 @@ var app = angular.module("mapAngular",["ngResource"])
                         html: '<div class="divIcon"><img class="icon" style="width:16px;height:21px;" src="./assets/{0}.png"/>'+
                         '<div class="avancement">'+(marker.avancement != undefined ? marker.avancement : '')+'</div></div>'
                     });
+
+
 
                     switch(marker.marque){
                         case "Maison d'aujourd'hui":
@@ -384,12 +420,43 @@ var app = angular.module("mapAngular",["ngResource"])
                         case 1:
                             tempConstruction.push($scope.addMarker(marker.lat,marker.lng,iconTemp));
                             break;
+                        case 2:
+                            var filter = $filter('filter')(tempTermine, {lieu: marker.lieu});
+                            if(filter.length == 0)
+                                tempTermine.push({lieu:marker.lieu,marque:marker.marque,lat:marker.lat,lng:marker.lng,number:1});
+                            else
+                                filter[0].number =  filter[0].number + 1;
+                            break;
                     }
                     //$scope.markers.push(marker);
                 });
 
                 $scope.layerConstruction = new L.FeatureGroup(tempConstruction);
                 $scope.layerPortefeuille = new L.FeatureGroup(tempPortefeuille);
+                $scope.layerTermine = new L.FeatureGroup();
+
+                angular.forEach(tempTermine,function(termine,key){
+                    var iconTemp = new L.DivIcon({
+                        className: 'blueIcon',
+                        iconSize:['16','21'],
+                        html: '<div class="divIcon"><img class="icon" style="width:16px;height:21px;" src="./assets/{0}.png"/>'+
+                        '<div class="avancement">'+termine.number+'</div></div>'
+                    });
+
+                    switch(termine.marque){
+                        case "Maison d'aujourd'hui":
+                            iconTemp.options.html = iconTemp.options.html.format("blue");
+                            break;
+                        case "Demeures & Cottages":
+                            iconTemp.options.html = iconTemp.options.html.format("purple");
+                            break;
+                        case "Maison sweet":
+                            iconTemp.options.html = iconTemp.options.html.format("orange");
+                            break;
+                    }
+
+                    $scope.layerTermine.addLayer($scope.addMarker(termine.lat,termine.lng,iconTemp,false));
+                });
 
                  switch(mapFactory.displayed){
                     case 0:
@@ -398,10 +465,14 @@ var app = angular.module("mapAngular",["ngResource"])
                     case 1:
                         $scope.layerConstruction.addTo($scope.map);
                         break;
+                    case 2:
+                        $scope.layerTermine.addTo($scope.map);
+                        break;
                 }
 
                 mapFactory.layerConstruction = $scope.layerConstruction;
                 mapFactory.layerPortefeuille = $scope.layerPortefeuille;
+                mapFactory.layerTermine = $scope.layerTermine;
             }
 
 
@@ -410,13 +481,17 @@ var app = angular.module("mapAngular",["ngResource"])
                 $scope.filtre(mapFactory.getAllMarkers());
             });
 
+            $rootScope.$on('APPLY_FILTER', function(event, markers) {
+                $scope.filtre(markers,true);
+            });
 
-            $rootScope.$on('STATE_CHANGED', function(event, state) {
+            $rootScope.$on('STATE_CHANGED', function(event, info) {
 
-                mapFactory.setDisplayed(state);
-                $scope.toggle.state(state);
+                mapFactory.setDisplayed(info.state);
+                $scope.toggle.state(info.state);
                 $scope.filtre(mapFactory.getAllMarkers());
 
+                $scope.onClick(info,true);
                 //$scope.filtre();
             });
         },
@@ -447,6 +522,15 @@ var app = angular.module("mapAngular",["ngResource"])
                 stateName: '1',
                 title: 'En cours de construction',
                 icon: 'glyphicon glyphicon-wrench',
+                onClick: function(control) {
+                    mapFactory.setDisplayed(2);
+                    scope.filtre(mapFactory.getAllMarkers());
+                    control.state('2');
+                }
+              },{
+                stateName: '2',
+                title: 'Terminé',
+                icon: 'glyphicon glyphicon glyphicon-ok',
                 onClick: function(control) {
                     mapFactory.setDisplayed(0);
                     scope.filtre(mapFactory.getAllMarkers());
@@ -481,6 +565,8 @@ var app = angular.module("mapAngular",["ngResource"])
                 ,defaultMarkGeocode: false
             }).on('markgeocode', function(e) {
                 var bbox = e.geocode.bbox;
+
+                scope.city = e.geocode.properties.display_name.substr(0,e.geocode.properties.display_name.indexOf(','));
 
                 mapFactory.setDisplayed(0);
                 scope.toggle.state(0);
